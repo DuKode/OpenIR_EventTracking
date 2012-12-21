@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Jakarta Data Viewer [Formative Evaluation, Autumn 2012]</title>
+
+	<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.4.4/leaflet.css" />
+	<!--[if lte IE 8]><link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.4.4/leaflet.ie.css" /><![endif]-->
+	<link rel="stylesheet" href="../dist/leaflet.draw.css" />
+	<!--[if lte IE 8]><link rel="stylesheet" href="../dist/leaflet.draw.ie.css" /><![endif]-->
+	<link rel="stylesheet" href="dist/leaflet.css" />
+    <!--[if lte IE 8]>
+    <link rel="stylesheet" href="dist/leaflet.ie.css" />
+    <![endif]-->
+
+
+	<script type="text/javascript" src="js/floating-1.12.js"></script>  
+ 
+
+	<script src="http://cdn.leafletjs.com/leaflet-0.4.4/leaflet-src.js"></script>
+	<script src="../src/ext/LineUtil.js"></script>
+	<script src="../src/ext/Polygon.js"></script>
+	<script src="../src/ext/Polyline.js"></script>
+	<script src="../src/draw/Handler.Draw.js"></script>
+	<script src="../src/draw/shapes/Polyline.Draw.js"></script>
+	<script src="../src/draw/shapes/Polygon.Draw.js"></script>
+	<script src="../src/draw/shapes/SimpleShape.Draw.js"></script>
+	<script src="../src/draw/shapes/Rectangle.Draw.js"></script>
+	<script src="../src/draw/shapes/Circle.Draw.js"></script>
+	<script src="../src/draw/shapes/Marker.Draw.js"></script>
+	<script src="../src/draw/Control.Draw.js"></script>
+</head>
+<body>
+
+	//make full screen
+	<div id="map" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></div>
+	
+	<script>
+	var map;
+		var ajaxRequest;
+	var plotlist;
+	var plotlayers=[];
+	
+	// This function is called to execute the PHP script on the server to update the log maintained on the server. 
+	// The log is used to track various user actions like selecting drawing tools, zoom in-out, layer adds
+	function updateServerLog(reqtype, str) {
+		var xmlhttp;
+		var queryString;
+		
+		xmlhttp=new XMLHttpRequest(); 
+	
+		// we create an async function to receive the HTTP response from the server so this function does not block
+		xmlhttp.onreadystatechange=function()
+		{
+      // Don't care about the response
+		  /*if (xmlhttp.status!=200) // status 200 indicates successful communication with the server
+			alert("Unable to update the server log");
+			*/
+		}
+		// construct the HTTP GET query string to transmit the log string to the server
+		// parameter names mapClicked and shapeDrawn are used to identify the corresponding user actions
+		queryString = "?" + reqtype + "=" + str;
+		xmlhttp.open("GET","updateLog.php" + queryString, true);
+		xmlhttp.send(); // send the HTTP GET request to the server
+	}
+	
+	function initmap() {
+		/*
+		// set up the map
+		var cloudmadeUrl = 'http://{s}.tile.cloudmade.com/BC9A493B41014CAABB98F0471D759707/997/256/{z}/{x}/{y}.png',
+			cloudmade = new L.TileLayer(cloudmadeUrl, {maxZoom: 18}),
+			map = new L.Map('map', {layers: [cloudmade], center: new L.LatLng(-6.17, 106.9), zoom: 11 });
+			*/
+		
+		// set up the map
+		map = new L.Map('map');
+			
+			
+		
+		// start the map in jakarta
+		map.setView(new L.LatLng(-6.17, 106.9),11);
+		//map.addLayer(osm); 
+			
+		//Add drawing tools. Code from here: https://github.com/jacobtoye/Leaflet.draw
+		var drawControl = new L.Control.Draw({
+			position: 'topleft',
+			polygon: {
+				title: 'Draw a polygon',
+				allowIntersection: false,
+				drawError: {
+					color: '#b00b00',
+					timeout: 1000
+				},
+				shapeOptions: {
+					color: '#bada55'
+				}
+			},
+			circle: {
+			title: 'Draw a circle',
+				shapeOptions: {
+					color: '#662d91'
+				}
+			}
+		});
+		map.addControl(drawControl);
+		
+		var drawnItems = new L.LayerGroup();
+		map.on('draw:poly-created', function (e) {
+			drawnItems.addLayer(e.poly);
+      updateServerLog("shapeDrawn","Polyline"); // track user action
+		});
+		map.on('draw:rectangle-created', function (e) {
+			drawnItems.addLayer(e.rect);
+			updateServerLog("shapeDrawn","Rectangle"); // track user action
+		});
+		map.on('draw:circle-created', function (e) {
+			drawnItems.addLayer(e.circ);
+			updateServerLog("shapeDrawn","Circle"); // track user action
+		});
+		map.on('draw:marker-created', function (e) {
+			var description = prompt("Enter description", "Type description here");
+			e.marker.bindPopup(description);
+			drawnItems.addLayer(e.marker);
+			updateServerLog("shapeDrawn","Marker"); // track user action
+		});
+    map.on( "zoomend", function( e ) {
+        updateServerLog("shapeDrawn","zoom level " + map.getZoom()); // track user action
+      });
+    map.on( "moveend", function( e ) {
+        updateServerLog("shapeDrawn","drag"); // track user action
+      });
+		
+		map.addLayer(drawnItems);
+	
+	//add osm and marker    
+	// create the tile layer with correct attribution
+		var osmUrl='http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+		var osmAttrib='Map data (c) <a href="openstreetmap.org">OSM</a>';
+		var osm = new L.TileLayer(osmUrl, {minZoom: 8, maxZoom: 12, attribution: osmAttrib});
+		var MarkerOSM = new L.Marker(new L.LatLng(-6.247547,106.845474)).bindPopup("Street maps and true-color satellite maps show a lot, but IR maps add so much environmental detail to the picture!");
+	    var layerOSMannotated = new L.LayerGroup();
+	    layerOSMannotated.addLayer(osm).addLayer(MarkerOSM);
+		map.addLayer(layerOSMannotated);
+		
+	//add riskmap and marker                                          
+		var MarkerRiskmap = new L.Marker(new L.LatLng(-6.119208,106.721878)).bindPopup("The OpenIR Flood Risk Map is a prototype image algorithmically derived from IR data. Redder areas are of higher risk. Learn more about this map at the <a href=\"http://openir.media.mit.edu/main/?p=540\" target=\"blank\">OpenIR</a> site.");
+	    //var layerRiskmapURL= '../jakarta/Tiles_Jakarta_Riskmap/{z}/{x}/{y}.png'; // old manual riskmap
+	    var layerRiskmapURL= '../../jakarta-AutoGen_srinidhi/riskmap_autogen/{z}/{x}/{y}.png';
+	    var layerRiskmap = new L.TileLayer(layerRiskmapURL, {maxZoom: 18, tms:true, updateWhenIdle:true, unloadInvisibleTiles:true, attribution: 'Riskmap courtesy of <a href="http://openir.media.mit.edu">OpenIR</a>'});
+	    //map.addLayer(layerRiskmap);
+	    var layerRiskmapannotated = new L.LayerGroup();
+	    layerRiskmapannotated.addLayer(layerRiskmap).addLayer(MarkerRiskmap);
+		map.addLayer(layerRiskmapannotated);
+		
+		
+		//add elevation and marker                                          
+		var MarkerElevation = new L.Marker(new L.LatLng(-6.36357,106.955338)).bindPopup("Selecting the Radar Elevation layer will show a medium-resolution map from NASA's <a href=\"http://www2.jpl.nasa.gov/srtm/\">SRTM</a> mission. This layer was used to generate the OpenIR Flood Riskmap.");
+	    var layerElevationURL= '../../jakarta-AutoGen_srinidhi/Tiles_Jakarta_Elevation/{z}/{x}/{y}.png';
+	    var layerElevation = new L.TileLayer(layerElevationURL, {maxZoom: 18, scheme:'tms', updateWhenIdle:true, unloadInvisibleTiles:true});
+	    //map.addLayer(layerElevation);
+	    var layerElevationannotated = new L.LayerGroup();
+	    layerElevationannotated.addLayer(layerElevation).addLayer(MarkerElevation);
+		map.addLayer(layerElevationannotated);
+	
+	
+	//add 432 layer and marker                                          
+		var Marker432 = new L.Marker(new L.LatLng(-6.03963,107.050953)).bindPopup("When you select the IR Vegetation layer, areas of deep vegetation are colored a deep red. The redder the color, the denser the vegetation, something that's hard to see in true-color or street maps.");
+	    var layer432URL= '../../jakarta-AutoGen_srinidhi/432/{z}/{x}/{y}.png';
+	    var layer432 = new L.TileLayer(layer432URL, {maxZoom: 18, tms:true, updateWhenIdle:true, unloadInvisibleTiles:true, attribution: 'IR & Radar data courtesy of <a href="http://www2.jpl.nasa.gov/srtm/">NASA</a> & <a href="http://glcf.umiacs.umd.edu/">UMD GLCF</a>'});
+	    //map.addLayer(layer432);
+		var layer432annotated = new L.LayerGroup();
+	    layer432annotated.addLayer(layer432).addLayer(Marker432);
+		map.addLayer(layer432annotated);
+		
+	//add 453 layer and marker                                          
+		var Marker453 = new L.Marker(new L.LatLng(-6.404514,106.576309)).bindPopup("When you select the IR Soil layer, you can see subtle variations in soil in brown, yellow, and green colors. The IR Soil layer is useful to examine with the IR Vegetation layer.");
+	    var layer453URL= '../../jakarta-AutoGen_srinidhi/453/{z}/{x}/{y}.png';
+	    var layer453 = new L.TileLayer(layer453URL, {maxZoom: 18, tms:true, updateWhenIdle:true, unloadInvisibleTiles:true, attribution: 'IR & Radar data courtesy of <a href="http://www2.jpl.nasa.gov/srtm/">NASA</a> & <a href="http://glcf.umiacs.umd.edu/">UMD GLCF</a>'});
+	    //map.addLayer(layer453);
+		var layer453annotated = new L.LayerGroup();
+	    layer453annotated.addLayer(layer453).addLayer(Marker453);
+		map.addLayer(layer453annotated);
+
+
+	//add 543 layer & marker
+		var Marker543 = new L.Marker(new L.LatLng(-6.187477,106.86058)).bindPopup("Because many buildings are earth-toned, they are sometimes hard to distinguish. However, buildings and other impermeable surfaces are easily discernable by their pink-purple coloring when you select an IR Urban image.");
+	    var layer543URL= '../../jakarta-AutoGen_srinidhi/543/{z}/{x}/{y}.png';
+	    var layer543 = new L.TileLayer(layer543URL, {maxZoom: 18, tms:true, updateWhenIdle:true, unloadInvisibleTiles:true, attribution: 'IR & Radar data courtesy of <a href="http://www2.jpl.nasa.gov/srtm/">NASA</a> & <a href="http://glcf.umiacs.umd.edu/">UMD GLCF</a>'});
+	    //map.addLayer(layer543);
+		var layer543annotated = new L.LayerGroup();
+	    layer543annotated.addLayer(layer543).addLayer(Marker543);
+		map.addLayer(layer543annotated);
+		
+
+	//add 754 layer & marker
+		var Marker754 = new L.Marker(new L.LatLng(-6.207956,107.099533)).bindPopup("This area looks like solid ground in a true color satellite image, but if you look at this area in an IR Moisture image, you'll easily see how this is an area of highly-irrigated rice paddies.");
+	    var layer754URL= '../../jakarta-AutoGen_srinidhi/754/{z}/{x}/{y}.png';
+	    var layer754 = new L.TileLayer(layer754URL, {maxZoom: 18, tms:true, updateWhenIdle:true, unloadInvisibleTiles:true, attribution: 'IR & Radar data courtesy of <a href="http://www2.jpl.nasa.gov/srtm/">NASA</a> & <a href="http://glcf.umiacs.umd.edu/">UMD GLCF</a>'});
+	    //map.addLayer(layer754);
+	    var layer754annotated = new L.LayerGroup();
+	    layer754annotated.addLayer(layer754).addLayer(Marker754);
+		map.addLayer(layer754annotated);
+		
+		
+	//add 321 layer and marker                                          
+		var Marker321 = new L.Marker(new L.LatLng(-6.207956,107.099533)).bindPopup("This area looks like solid ground in a true color satellite image, but if you look at this area in an IR Moisture image, you'll easily see how this is an area of highly-irrigated rice paddies.");
+	    var layer321URL= '../../jakarta-AutoGen_srinidhi/321/{z}/{x}/{y}.png';
+	    var layer321 = new L.TileLayer(layer321URL, {maxZoom: 18, tms:true, updateWhenIdle:true, unloadInvisibleTiles:true, attribution: 'IR & Radar data courtesy of <a href="http://www2.jpl.nasa.gov/srtm/">NASA</a> & <a href="http://glcf.umiacs.umd.edu/">UMD GLCF</a>'});
+	    //map.addLayer(layer321);
+	    var layer321annotated = new L.LayerGroup();
+	    layer321annotated.addLayer(layer321).addLayer(Marker321);
+		map.addLayer(layer321annotated);
+		
+		var baselayers = {
+			'OpenStreetMap': layerOSMannotated
+		};
+		
+		var overlays = {
+			'OpenIR: Flood Riskmap': layerRiskmapannotated,
+			//'Satellite: Radar Elevation': layerElevationannotated, //elevation isn't working with this leaflet build
+			'Satellite: IR Vegetation': layer432annotated,
+			'Satellite: IR Soil': layer453annotated,
+			'Satellite: IR Urban': layer543annotated,
+			'Satellite: IR Moisture': layer754annotated,
+			'Satellite: True Color': layer321annotated
+		};
+		
+		L.control.layers(baselayers, overlays).addTo(map);
+		//var layersControl = new L.Control.Layers(irlayers);
+		//map.addControl(layersControl);
+		
+		//track layeradds
+		map.on('layeradd', function(e) {
+			if (e.layer instanceof L.LayerGroup) {  //e is the layer event; 
+			  switch(e.layer)
+			  {
+				case layer453annotated:
+				  updateServerLog("mapClicked", "Soil ON");
+				  break;
+				case layerRiskmapannotated:
+				  updateServerLog("mapClicked", "Flood Riskmap ON");
+				  break;
+				case layer432annotated:
+				  updateServerLog("mapClicked", "Vegetation ON");
+				  break;
+				case layer543annotated:
+				  updateServerLog("mapClicked", "Urban ON");
+				  break;
+				case layer754annotated:
+				  updateServerLog("mapClicked", "Moisture ON");
+				  break;
+				case layer321annotated:
+				  updateServerLog("mapClicked", "True Color ON");
+				  break;
+				default:
+				  break;
+			  } // end of switch
+	        }
+		 } ); // end of map.on()
+		 
+		//track layerremoves
+		map.on('layerremove', function(e) {
+			if (e.layer instanceof L.LayerGroup) {  //e is the layer event; 
+			  switch(e.layer)
+			  {
+				case layer453annotated:
+				  updateServerLog("mapClicked", "Soil OFF");
+				  break;
+				case layerRiskmapannotated:
+				  updateServerLog("mapClicked", "Flood Riskmap OFF");
+				  break;
+				case layer432annotated:
+				  updateServerLog("mapClicked", "Vegetation OFF");
+				  break;
+				case layer543annotated:
+				  updateServerLog("mapClicked", "Urban OFF");
+				  break;
+				case layer754annotated:
+				  updateServerLog("mapClicked", "Moisture OFF");
+				  break;
+				case layer321annotated:
+				  updateServerLog("mapClicked", "True Color OFF");
+				  break;
+				default:
+				  break;
+			  } // end of switch
+	        }
+		 } ); // end of map.on()
+		
+	}
+		
+	</script>	
+	
+</body>
+
+<body onload="initmap()">
+   		 	<script type="text/javascript">  
+				floatingMenu.add('floatdiv',  
+				{  
+					// Represents distance from left or right browser window  
+					// border depending upon property used. Only one should be  
+					// specified.  
+					// targetLeft: 0,  
+					//targetRight: 100,  
+		  
+					// Represents distance from top or bottom browser window  
+					// border depending upon property used. Only one should be  
+					// specified.  
+					targetTop: 12,  
+					//targetBottom: 0,  
+		  
+					// Uncomment one of those if you need centering on  
+					// X- or Y- axis.  
+					 //centerX: true,  
+					 //centerY: true,  
+		  
+					// Remove this one if you don't want snap effect  
+					snap: true  
+				});  
+			</script>  
+
+   		<div id="map"></div>
+         <div id="floatdiv" style="  
+			position:absolute; border-radius: 10px;
+			width:190px;height:28px;top:12px;left:50px;  
+			padding:10px;background:#ffffff;opacity:0.6;   
+			font-family:Gill Sans, sans-serif;
+			z-index:100">OpenIR Jakarta Data Viewer
+		</div>  
+		  
+    </body>
+</html>

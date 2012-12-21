@@ -1,0 +1,169 @@
+<DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+ <html xmlns="http://www.w3.org/1999/xhtml"
+   <head>
+     <title>Jakarta Data Viewer 2</title>
+
+
+     <link rel="stylesheet" href="dist/leaflet.css" />
+     <!--[if lte IE 8]>
+     <link rel="stylesheet" href="dist/leaflet.ie.css" />
+     <![endif]-->
+
+     <script type="text/javascript" src="dist/leaflet.js"></script>
+	 <!--<script type="text/javascript" src="js/jquery-1.8.1.min.js"></script>-->
+	 <script type="text/javascript" src="js/floating-1.12.js"></script>  
+
+	<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.4.4/leaflet.css" />
+	<!--[if lte IE 8]><link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.4.4/leaflet.ie.css" /><![endif]-->
+	<link rel="stylesheet" href="../dist/leaflet.draw.css" />
+	<!--[if lte IE 8]><link rel="stylesheet" href="../dist/leaflet.draw.ie.css" /><![endif]-->
+
+	<script src="http://cdn.leafletjs.com/leaflet-0.4.4/leaflet-src.js"></script>
+	<script src="../src/ext/LineUtil.js"></script>
+	<script src="../src/ext/Polygon.js"></script>
+	<script src="../src/ext/Polyline.js"></script>
+	<script src="../src/draw/Handler.Draw.js"></script>
+	<script src="../src/draw/shapes/Polyline.Draw.js"></script>
+	<script src="../src/draw/shapes/Polygon.Draw.js"></script>
+	<script src="../src/draw/shapes/SimpleShape.Draw.js"></script>
+	<script src="../src/draw/shapes/Rectangle.Draw.js"></script>
+	<script src="../src/draw/shapes/Circle.Draw.js"></script>
+	<script src="../src/draw/shapes/Marker.Draw.js"></script>
+	<script src="../src/draw/Control.Draw.js"></script>
+	 
+
+	<script type="text/javascript">
+	
+	var map;
+	var ajaxRequest;
+	var plotlist;
+	var plotlayers=[];
+
+	function initmap() {
+		// set up the map
+		map = new L.Map('map');
+
+		// create the tile layer with correct attribution
+		var osmUrl='http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+		var osmAttrib='Map data (c) <a href="openstreetmap.org">OSM</a>';
+		var osm = new L.TileLayer(osmUrl, {minZoom: 8, maxZoom: 12, attribution: osmAttrib});		
+
+		// start the map in jakarta
+		map.setView(new L.LatLng(-6.17, 106.9),11);
+		map.addLayer(osm);
+		
+		
+		//add osm and marker                                          
+		var MarkerOSM = new L.Marker(new L.LatLng(-6.247547,106.845474)).bindPopup("Street maps and true-color satellite maps show a lot, but IR maps add so much environmental detail to the picture!");
+	    var layerOSMannotated = new L.LayerGroup();
+	    layerOSMannotated.addLayer(osm).addLayer(MarkerOSM);
+		map.addLayer(layerOSMannotated);
+		
+		
+		//create an object that holds the base layers
+
+		var baselayers= {
+			"OpenStreetMaps": layerOSMannotated,
+			"OpenIR: Flood Riskmap": layerRiskmapannotated,
+			"Satellite: Radar Elevation": layerElevationannotated,
+			"Satellite: IR Vegetation": layer432annotated,
+			"Satellite: IR Urban": layer543annotated,
+			"Satellite: IR Soil": layer453annotated,
+			"Satellite: IR Moisture": layer754annotated,
+			"Satellite: True Color": layer321annotated
+			
+		};
+
+		var layersControl = new L.Control.Layers(baselayers);
+
+		map.addControl(layersControl);
+
+	}
+	
+	
+	</script>
+   </head>
+
+ 
+   <body onload="initmap()">
+   		 	<script type="text/javascript">  
+				floatingMenu.add('floatdiv',  
+				{  
+					// Represents distance from left or right browser window  
+					// border depending upon property used. Only one should be  
+					// specified.  
+					// targetLeft: 0,  
+					//targetRight: 100,  
+		  
+					// Represents distance from top or bottom browser window  
+					// border depending upon property used. Only one should be  
+					// specified.  
+					targetTop: 12,  
+					//targetBottom: 0,  
+		  
+					// Uncomment one of those if you need centering on  
+					// X- or Y- axis.  
+					 //centerX: true,  
+					 //centerY: true,  
+		  
+					// Remove this one if you don't want snap effect  
+					snap: true  
+				});  
+			</script>  
+
+   		<div id="map"></div>
+         <div id="floatdiv" style="  
+			position:absolute; border-radius: 10px;
+			width:190px;height:28px;top:100px;left:50px;  
+			padding:10px;background:#ffffff;opacity:0.6;   
+			font-family:Gill Sans, sans-serif;
+			z-index:100">OpenIR Jakarta Data Viewer
+		</div>  
+		  
+		  
+		  	<script>
+		
+		var cloudmadeUrl = 'http://{s}.tile.cloudmade.com/BC9A493B41014CAABB98F0471D759707/997/256/{z}/{x}/{y}.png',
+			cloudmade = new L.TileLayer(cloudmadeUrl, {maxZoom: 18}),
+			map = new L.Map('map', {layers: [cloudmade], center: new L.LatLng(-37.7772, 175.2756), zoom: 15 });
+
+		var drawControl = new L.Control.Draw({
+			position: 'topleft',
+			polygon: {
+				title: 'Draw a sexy polygon!',
+				allowIntersection: false,
+				drawError: {
+					color: '#b00b00',
+					timeout: 1000
+				},
+				shapeOptions: {
+					color: '#bada55'
+				}
+			},
+			circle: {
+				shapeOptions: {
+					color: '#662d91'
+				}
+			}
+		});
+		map.addControl(drawControl);
+		
+		var drawnItems = new L.LayerGroup();
+		map.on('draw:poly-created', function (e) {
+			drawnItems.addLayer(e.poly);
+		});
+		map.on('draw:rectangle-created', function (e) {
+			drawnItems.addLayer(e.rect);
+		});
+		map.on('draw:circle-created', function (e) {
+			drawnItems.addLayer(e.circ);
+		});
+		map.on('draw:marker-created', function (e) {
+			e.marker.bindPopup('A popup!');
+			drawnItems.addLayer(e.marker);
+		});
+		map.addLayer(drawnItems);
+		
+	</script>
+    </body>
+  </html>

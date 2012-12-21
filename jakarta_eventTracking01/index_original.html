@@ -1,0 +1,178 @@
+<DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+ <html xmlns="http://www.w3.org/1999/xhtml"
+   <head>
+     <title>Jakarta Data Viewer 2</title>
+
+
+     <link rel="stylesheet" href="dist/leaflet.css" />
+     <!--[if lte IE 8]>
+     <link rel="stylesheet" href="dist/leaflet.ie.css" />
+     <![endif]-->
+
+     <script type="text/javascript" src="dist/leaflet.js"></script>
+	 <!--<script type="text/javascript" src="js/jquery-1.8.1.min.js"></script>-->
+	 <script type="text/javascript" src="js/floating-1.12.js"></script>  
+
+	 
+
+	<script type="text/javascript">
+	
+	var map;
+	var ajaxRequest;
+	var plotlist;
+	var plotlayers=[];
+
+	function initmap() {
+		// set up the map
+		map = new L.Map('map');
+
+		// create the tile layer with correct attribution
+		var osmUrl='http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+		var osmAttrib='Map data (c) <a href="openstreetmap.org">OSM</a>';
+		var osm = new L.TileLayer(osmUrl, {minZoom: 8, maxZoom: 12, attribution: osmAttrib});		
+
+		// start the map in jakarta
+		map.setView(new L.LatLng(-6.17, 106.9),11);
+		map.addLayer(osm);
+		
+		
+		//add osm and marker                                          
+		var MarkerOSM = new L.Marker(new L.LatLng(-6.247547,106.845474)).bindPopup("Street maps and true-color satellite maps show a lot, but IR maps add so much environmental detail to the picture!");
+	    var layerOSMannotated = new L.LayerGroup();
+	    layerOSMannotated.addLayer(osm).addLayer(MarkerOSM);
+		map.addLayer(layerOSMannotated);
+		
+		
+		//add riskmap and marker                                          
+		var MarkerRiskmap = new L.Marker(new L.LatLng(-6.119208,106.721878)).bindPopup("The OpenIR Flood Risk Map is a prototype image algorithmically derived from IR data. Redder areas are of higher risk. Learn more about this map at the <a href=\"http://openir.media.mit.edu/main/?p=540\" target=\"blank\">OpenIR</a> site.");
+	    //var layerRiskmapURL= '../jakarta/Tiles_Jakarta_Riskmap/{z}/{x}/{y}.png'; // old manual riskmap
+	    var layerRiskmapURL= 'riskmap_autogen/{z}/{x}/{y}.png';
+	    var layerRiskmap = new L.TileLayer(layerRiskmapURL, {maxZoom: 18, scheme:'tms', updateWhenIdle:true, unloadInvisibleTiles:true, attribution: 'Riskmap courtesy of <a href="http://openir.media.mit.edu">OpenIR</a>'});
+	    //map.addLayer(layerRiskmap);
+	    var layerRiskmapannotated = new L.LayerGroup();
+	    layerRiskmapannotated.addLayer(layerRiskmap).addLayer(MarkerRiskmap);
+		map.addLayer(layerRiskmapannotated);
+	    
+	    
+		 //add elevation and marker                                          
+		var MarkerElevation = new L.Marker(new L.LatLng(-6.36357,106.955338)).bindPopup("Selecting the Radar Elevation layer will show a medium-resolution map from NASA's <a href=\"http://www2.jpl.nasa.gov/srtm/\">SRTM</a> mission. This layer was used to generate the OpenIR Flood Riskmap.");
+	    var layerElevationURL= '../jakarta/Tiles_Jakarta_Elevation/{z}/{x}/{y}.png';
+	    var layerElevation = new L.TileLayer(layerElevationURL, {maxZoom: 18, scheme:'tms', updateWhenIdle:true, unloadInvisibleTiles:true});
+	    //map.addLayer(layerElevation);
+	    var layerElevationannotated = new L.LayerGroup();
+	    layerElevationannotated.addLayer(layerElevation).addLayer(MarkerElevation);
+		map.addLayer(layerElevationannotated);
+		
+		
+		//add 432 layer and marker                                          
+		var Marker432 = new L.Marker(new L.LatLng(-6.03963,107.050953)).bindPopup("When you select the IR Vegetation layer, areas of deep vegetation are colored a deep red. The redder the color, the denser the vegetation, something that's hard to see in true-color or street maps.");
+	    var layer432URL= '432/{z}/{x}/{y}.png';
+	    var layer432 = new L.TileLayer(layer432URL, {maxZoom: 18, scheme:'tms', updateWhenIdle:true, unloadInvisibleTiles:true});
+	    //map.addLayer(layer432);
+		var layer432annotated = new L.LayerGroup();
+	    layer432annotated.addLayer(layer432).addLayer(Marker432);
+		map.addLayer(layer432annotated);
+
+
+		//add 453 layer and marker                                          
+		var Marker453 = new L.Marker(new L.LatLng(-6.404514,106.576309)).bindPopup("When you select the IR Soil layer, you can see subtle variations in soil in brown, yellow, and green colors. The IR Soil layer is useful to examine with the IR Vegetation layer.");
+	    var layer453URL= '453/{z}/{x}/{y}.png';
+	    var layer453 = new L.TileLayer(layer453URL, {maxZoom: 18, scheme:'tms', updateWhenIdle:true, unloadInvisibleTiles:true});
+	    //map.addLayer(layer453);
+		var layer453annotated = new L.LayerGroup();
+	    layer453annotated.addLayer(layer453).addLayer(Marker453);
+		map.addLayer(layer453annotated);
+
+
+		//add 543 layer & marker
+		var Marker543 = new L.Marker(new L.LatLng(-6.187477,106.86058)).bindPopup("Because many buildings are earth-toned, they are sometimes hard to distinguish. However, buildings and other impermeable surfaces are easily discernable by their pink-purple coloring when you select an IR Urban image.");
+	    var layer543URL= '543/{z}/{x}/{y}.png';
+	    var layer543 = new L.TileLayer(layer543URL, {maxZoom: 18, scheme:'tms', updateWhenIdle:true, unloadInvisibleTiles:true});
+	    //map.addLayer(layer543);
+		var layer543annotated = new L.LayerGroup();
+	    layer543annotated.addLayer(layer543).addLayer(Marker543);
+		map.addLayer(layer543annotated);
+		
+
+		//add 754 layer & marker
+		var Marker754 = new L.Marker(new L.LatLng(-6.207956,107.099533)).bindPopup("This area looks like solid ground in a true color satellite image, but if you look at this area in an IR Moisture image, you'll easily see how this is an area of highly-irrigated rice paddies.");
+	    var layer754URL= '754/{z}/{x}/{y}.png';
+	    var layer754 = new L.TileLayer(layer754URL, {maxZoom: 18, scheme:'tms', updateWhenIdle:true, unloadInvisibleTiles:true});
+	    //map.addLayer(layer754);
+	    var layer754annotated = new L.LayerGroup();
+	    layer754annotated.addLayer(layer754).addLayer(Marker754);
+		map.addLayer(layer754annotated);
+		
+		
+		//add 321 layer and marker                                          
+		var Marker321 = new L.Marker(new L.LatLng(-6.207956,107.099533)).bindPopup("This area looks like solid ground in a true color satellite image, but if you look at this area in an IR Moisture image, you'll easily see how this is an area of highly-irrigated rice paddies.");
+	    var layer321URL= '321/{z}/{x}/{y}.png';
+	    var layer321 = new L.TileLayer(layer321URL, {maxZoom: 18, scheme:'tms', updateWhenIdle:true, unloadInvisibleTiles:true, attribution: 'IR & Radar data courtesy of <a href="http://www2.jpl.nasa.gov/srtm/">NASA</a> & <a href="http://glcf.umiacs.umd.edu/">UMD GLCF</a>'});
+	    //map.addLayer(layer321);
+	    var layer321annotated = new L.LayerGroup();
+	    layer321annotated.addLayer(layer321).addLayer(Marker321);
+		map.addLayer(layer321annotated);
+	   
+
+		//create an object that holds the base layers
+
+		var baselayers= {
+			"OpenStreetMaps": layerOSMannotated,
+			"OpenIR: Flood Riskmap": layerRiskmapannotated,
+			"Satellite: Radar Elevation": layerElevationannotated,
+			"Satellite: IR Vegetation": layer432annotated,
+			"Satellite: IR Urban": layer543annotated,
+			"Satellite: IR Soil": layer453annotated,
+			"Satellite: IR Moisture": layer754annotated,
+			"Satellite: True Color": layer321annotated
+			
+		};
+
+		var layersControl = new L.Control.Layers(baselayers);
+
+		map.addControl(layersControl);
+
+	}
+	
+	
+	</script>
+   </head>
+
+ 
+   <body onload="initmap()">
+   		 	<script type="text/javascript">  
+				floatingMenu.add('floatdiv',  
+				{  
+					// Represents distance from left or right browser window  
+					// border depending upon property used. Only one should be  
+					// specified.  
+					// targetLeft: 0,  
+					//targetRight: 100,  
+		  
+					// Represents distance from top or bottom browser window  
+					// border depending upon property used. Only one should be  
+					// specified.  
+					targetTop: 12,  
+					//targetBottom: 0,  
+		  
+					// Uncomment one of those if you need centering on  
+					// X- or Y- axis.  
+					 //centerX: true,  
+					 //centerY: true,  
+		  
+					// Remove this one if you don't want snap effect  
+					snap: true  
+				});  
+			</script>  
+
+   		<div id="map"></div>
+         <div id="floatdiv" style="  
+			position:absolute; border-radius: 10px;
+			width:190px;height:28px;top:100px;left:50px;  
+			padding:10px;background:#ffffff;opacity:0.6;   
+			font-family:Gill Sans, sans-serif;
+			z-index:100">OpenIR Jakarta Data Viewer
+		</div>  
+		  
+    </body>
+  </html>
